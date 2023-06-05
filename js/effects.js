@@ -1,65 +1,73 @@
-import '/nouislider/nouislider.js';
+import {img} from './scale.js';
+import {settings} from './data.js';
 
-const form = document.querySelector('.img-upload__form');
-const scaleButtonSmaller = form.querySelector('.scale__control--smaller');
-const scaleButtonBigger = form.querySelector('.scale__control--bigger');
-const scaleControlValue = form.querySelector('.scale__control--value');
-const imgUploadPreview = form.querySelector('.img-upload__preview');
-const effectLevel = form.querySelector('.effect-level__value');
-const slider = document.querySelector('.effect-level__slider');
+const effects = document.querySelector('.effects__list');
+const sliderElement = document.querySelector('.effect-level__slider');
+const valueElement = document.querySelector('.effect-level__value');
+let currentSettings = settings[0];
+const defaultEffect = effects.querySelector('#effect-none');
+let effect = 'none';
 
-noUiSlider.create(slider, {
-  start: [80],
+noUiSlider.create(sliderElement, {
   range: {
-    min: [0],
-    max: [100],
+    min: 0,
+    max: 1,
   },
-  step: 1,
+  start: 1,
   connect: 'lower',
-  format: {
-    to: function (value) {
-      if (Number.isInteger(value)) {
-        return value.toFixed(0);
-      }
-      return value.toFixed(1);
+});
+
+function updateEffect (currentEffect) {
+  sliderElement.noUiSlider.updateOptions({
+    range: {
+      min: currentEffect.min,
+      max: currentEffect.max,
     },
-    from: function (value) {
-      return parseFloat(value);
-    },
-  },
-});
-
-document.querySelector('.img-upload__effect-level').classList.add('hidden');
-
-scaleButtonSmaller.addEventListener('click', () => {
-  let percent = parseInt(scaleControlValue.value, 10);
-  if (percent - 25 < 25) {
-    percent = '25%';
-  } else {
-    percent = `${  percent - 25  }%`;
-  }
-  imgUploadPreview.style.scale = parseInt(percent, 10) / 100;
-  scaleControlValue.value = percent;
-});
-
-scaleButtonBigger.addEventListener('click', () => {
-  let percent = parseInt(scaleControlValue.value, 10);
-  if (percent + 25 > 100) {
-    percent = '100%';
-  } else {
-    percent = `${  percent + 25  }%`;
-  }
-  imgUploadPreview.style.scale = parseInt(percent, 10) / 100;
-  scaleControlValue.value = percent;
-});
-
-const styles = form.querySelectorAll( '.effects__item');
-for (let i = 0; i < styles.length; i++){
-  styles[i].addEventListener('click', () => {
-    imgUploadPreview.classList.value = `img-upload__preview ${  styles[i].querySelector('.effects__preview').classList[1]}`;
+    step: currentEffect.step,
+    start: currentEffect.start,
   });
 }
 
-slider.noUiSlider.on('update', () => {
-  effectLevel.value = slider.noUiSlider.get();
+sliderElement.noUiSlider.on('update', () => {
+  if (effect === 'none') {
+    valueElement.value = '';
+    img.style.filter = effect;
+    sliderElement.classList.add('hidden');
+  } else {
+    valueElement.value = sliderElement.noUiSlider.get();
+    let style;
+    if (currentSettings.symbol) {
+      style = `${currentSettings.filter}(${valueElement.value}${currentSettings.symbol})`;
+    } else {
+      style = `${currentSettings.filter}(${valueElement.value})`;
+    }
+    img.style.filter = style;
+  }
 });
+
+effects.addEventListener('click', (evt) => {
+  if (evt.target.matches('input[type="radio"]')) {
+    img.classList.remove(`effects__preview--${effect}`);
+    effect = evt.target.value;
+    img.classList.add(`effects__preview--${effect}`);
+    if (effect === 'none') {
+      updateEffect(currentSettings);
+    } else {
+      settings.forEach((element) => {
+        if (element.name === effect) {
+          currentSettings = element;
+          updateEffect(currentSettings);
+          sliderElement.classList.remove('hidden');
+        }
+      });
+    }
+  }
+});
+
+export function resetEffects () {
+  img.classList.remove(`effects__preview--${effect}`);
+  defaultEffect.checked = true;
+  valueElement.value = '';
+  img.style.filter = 'none';
+  sliderElement.classList.add('hidden');
+}

@@ -1,32 +1,40 @@
-import '/pristine/Pristine.min.js';
-const form = document.querySelector('.img-upload__form');
-const hashTag = new RegExp('^#[а-яa-zA-ZА-ЯёЁ0-9]{1,19}$');
+import {sendData} from './load.js';
+import {closeOverlay} from './form.js';
+import {createSystemMessages} from './util.js';
+
+const form = document.querySelector('#upload-select-image');
+const comment = document.querySelector('.text__description');
+const submitButton = document.querySelector('#upload-submit');
 
 const pristine = new Pristine(form, {
-  classTo: 'img-upload__text',
-  errorClass: 'form__item--invalid',
-  successClass: 'form__item--valid',
-  errorTextParent: 'img-upload__text',
-  errorTextTag: 'span',
-  errorTextClass: 'form__error'
+  classTo: 'img-upload__field-wrapper',
+  errorTextParent: 'img-upload__field-wrapper',
+  errorTextClass: 'img-upload__error-text'
 });
 
-const validateHashTag = function (value) {
-  return value === '' || hashTag.test(value);
-};
+function checkCommentLength(text){
+  return(text.length > 5 && text.length < 120);
+}
 
-const validateComment = function (value) {
-  return value.length > 19 && value.length <= 140;
-};
+pristine.addValidator(comment, checkCommentLength,'Comment length should not be more than 120 symbols and less than 5 symbols');
 
-pristine.addValidator(form.querySelector('.text__hashtags'), validateHashTag,
-  'Хештег должен начинаться с #, включать в себя только русские и латинские символы и не превышать длины 20 символов'
-);
-
-pristine.addValidator(form.querySelector('.text__description'), validateComment,
-  'От 20 до 140 символов'
-);
-
-const getPristine = () => pristine;
-
-export {  getPristine  };
+form.addEventListener('submit', (evt) => {
+  evt.preventDefault();
+  const isValid = pristine.validate();
+  if (isValid) {
+    submitButton.disabled = true;
+    sendData(
+      () => {
+        closeOverlay(false);
+        createSystemMessages('success');
+        submitButton.disabled = false;
+      },
+      () => {
+        closeOverlay(true);
+        createSystemMessages('error');
+        submitButton.disabled = false;
+      },
+      new FormData(evt.target),
+    );
+  }
+});
